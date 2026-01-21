@@ -31,12 +31,30 @@ export default function Home() {
   }, [])
 
   const speak = (text: string) => {
+    console.log('=== Speech Synthesis Debug ===')
+    console.log('Text:', text)
+    console.log('speechSynthesis available:', 'speechSynthesis' in window)
+    
     // 음성 목록 확인
     const voices = speechSynthesis.getVoices()
-    const chineseVoice = voices.find(voice => voice.lang.includes('zh'))
+    console.log('Available voices:', voices.length)
+    console.log('Voices:', voices.map(v => `${v.name} (${v.lang})`))
     
-    if (!chineseVoice && voices.length > 0) {
-      alert('중국어 음성이 설치되지 않았습니다. 기기 설정 > 손쉬운 사용 > 음성 콘텐츠에서 중국어를 다운로드해주세요.')
+    const chineseVoices = voices.filter(voice => 
+      voice.lang.includes('zh') || 
+      voice.lang.includes('cmn') ||
+      voice.lang.includes('CN')
+    )
+    console.log('Chinese voices found:', chineseVoices.length)
+    console.log('Chinese voices:', chineseVoices.map(v => `${v.name} (${v.lang})`))
+    
+    // 음성이 로드되지 않았을 수 있음 (특히 iOS)
+    if (voices.length === 0) {
+      console.log('Voices not loaded yet, waiting...')
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        console.log('Voices loaded!')
+        speak(text) // 재시도
+      }, { once: true })
       return
     }
     
@@ -49,19 +67,29 @@ export default function Home() {
       utterance.volume = 1.0
       
       // 중국어 음성이 있으면 명시적으로 지정
-      if (chineseVoice) {
-        utterance.voice = chineseVoice
+      if (chineseVoices.length > 0) {
+        utterance.voice = chineseVoices[0]
+        console.log('Using voice:', chineseVoices[0].name)
+      } else {
+        console.log('No Chinese voice, using default with zh-CN lang')
+      }
+      
+      utterance.onstart = () => {
+        console.log('Speech started')
       }
       
       utterance.onend = () => {
+        console.log('Speech ended successfully')
         speechSynthesis.cancel()
       }
       
       utterance.onerror = (event) => {
-        console.error('Speech error:', event)
-        alert('발음 재생에 실패했습니다.')
+        console.error('Speech error event:', event)
+        console.error('Error type:', event.error)
+        alert(`발음 재생 실패: ${event.error}`)
       }
       
+      console.log('Calling speechSynthesis.speak()')
       speechSynthesis.speak(utterance)
     }, 100)
   }
