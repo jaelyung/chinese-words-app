@@ -10,4 +10,4 @@ const nextConfig = {
   turbopack: {}  // 빈 turbopack 설정 추가
 }
 
-module.exports = nextConfig // withPWA 제거
+module.exports = withPWA(nextConfig)
