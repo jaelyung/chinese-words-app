@@ -63,20 +63,17 @@ export default function Home() {
       utterance.voice = chineseVoices[0]
     }
     
-    // 7. 에러 처리 - cancel 제거!
-    utterance.onerror = (event) => {
-      if (event.error !== 'canceled') { // canceled는 무시
-        console.error('Speech error:', event.error)
-        alert(`발음 재생 실패: ${event.error}`)
-      }
+    // 7. 에러는 조용히 무시
+    utterance.onerror = () => {
+      // 아무것도 하지 않음
     }
     
-    // 8. 완료 후 정리는 하지 않음 (cancel 호출 제거)
+    // 8. 완료 로그 (선택사항)
     utterance.onend = () => {
       console.log('Speech completed')
     }
     
-    // 9. 즉시 재생 (setTimeout 제거)
+    // 9. 즉시 재생
     speechSynthesis.speak(utterance)
   }
 
