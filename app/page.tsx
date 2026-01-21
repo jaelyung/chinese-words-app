@@ -9,6 +9,17 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [showMeaning, setShowMeaning] = useState(false)
 
+  // Speech Synthesis 초기화 (모바일용)
+  useEffect(() => {
+    // 페이지 로드 시 speechSynthesis 깨우기
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      // iOS를 위한 더미 발화로 초기화
+      const utterance = new SpeechSynthesisUtterance('')
+      speechSynthesis.speak(utterance)
+      speechSynthesis.cancel()
+    }
+  }, [])
+
   // 단어 불러오기
   useEffect(() => {
     async function loadWords() {
@@ -19,12 +30,29 @@ export default function Home() {
     loadWords()
   }, [])
 
-  // 중국어 발음 재생
+  // 중국어 발음 재생 (개선된 버전)
   const speak = (text: string) => {
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'zh-CN'
-    utterance.rate = 0.8
-    speechSynthesis.speak(utterance)
+    // 기존 재생 중지
+    speechSynthesis.cancel()
+    
+    // iOS를 위한 딜레이
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'zh-CN'
+      utterance.rate = 0.8
+      utterance.volume = 1.0
+      
+      // iOS Safari를 위한 추가 설정
+      utterance.onend = () => {
+        speechSynthesis.cancel() // 완료 후 정리
+      }
+      
+      utterance.onerror = (event) => {
+        console.error('Speech error:', event)
+      }
+      
+      speechSynthesis.speak(utterance)
+    }, 100)
   }
 
   // 다음 단어
