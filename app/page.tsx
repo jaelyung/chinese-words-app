@@ -30,25 +30,36 @@ export default function Home() {
     loadWords()
   }, [])
 
-  // 중국어 발음 재생 (개선된 버전)
   const speak = (text: string) => {
-    // 기존 재생 중지
+    // 음성 목록 확인
+    const voices = speechSynthesis.getVoices()
+    const chineseVoice = voices.find(voice => voice.lang.includes('zh'))
+    
+    if (!chineseVoice && voices.length > 0) {
+      alert('중국어 음성이 설치되지 않았습니다. 기기 설정 > 손쉬운 사용 > 음성 콘텐츠에서 중국어를 다운로드해주세요.')
+      return
+    }
+    
     speechSynthesis.cancel()
     
-    // iOS를 위한 딜레이
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'zh-CN'
       utterance.rate = 0.8
       utterance.volume = 1.0
       
-      // iOS Safari를 위한 추가 설정
+      // 중국어 음성이 있으면 명시적으로 지정
+      if (chineseVoice) {
+        utterance.voice = chineseVoice
+      }
+      
       utterance.onend = () => {
-        speechSynthesis.cancel() // 완료 후 정리
+        speechSynthesis.cancel()
       }
       
       utterance.onerror = (event) => {
         console.error('Speech error:', event)
+        alert('발음 재생에 실패했습니다.')
       }
       
       speechSynthesis.speak(utterance)
