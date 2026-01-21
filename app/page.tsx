@@ -31,67 +31,53 @@ export default function Home() {
   }, [])
 
   const speak = (text: string) => {
-    console.log('=== Speech Synthesis Debug ===')
-    console.log('Text:', text)
-    console.log('speechSynthesis available:', 'speechSynthesis' in window)
+    // 1. 기존 발화 완전히 정리
+    speechSynthesis.cancel()
     
-    // 음성 목록 확인
+    // 2. 음성 목록 확인
     const voices = speechSynthesis.getVoices()
-    console.log('Available voices:', voices.length)
-    console.log('Voices:', voices.map(v => `${v.name} (${v.lang})`))
     
+    // 3. 음성이 아직 로드 안 됐으면 기다리기
+    if (voices.length === 0) {
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        speak(text) // 로드되면 재시도
+      }, { once: true })
+      return
+    }
+    
+    // 4. 중국어 음성 찾기
     const chineseVoices = voices.filter(voice => 
       voice.lang.includes('zh') || 
       voice.lang.includes('cmn') ||
       voice.lang.includes('CN')
     )
-    console.log('Chinese voices found:', chineseVoices.length)
-    console.log('Chinese voices:', chineseVoices.map(v => `${v.name} (${v.lang})`))
     
-    // 음성이 로드되지 않았을 수 있음 (특히 iOS)
-    if (voices.length === 0) {
-      console.log('Voices not loaded yet, waiting...')
-      speechSynthesis.addEventListener('voiceschanged', () => {
-        console.log('Voices loaded!')
-        speak(text) // 재시도
-      }, { once: true })
-      return
+    // 5. 새 발화 생성
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'zh-CN'
+    utterance.rate = 0.8
+    utterance.volume = 1.0
+    
+    // 6. 중국어 음성 지정
+    if (chineseVoices.length > 0) {
+      utterance.voice = chineseVoices[0]
     }
     
-    speechSynthesis.cancel()
-    
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = 'zh-CN'
-      utterance.rate = 0.8
-      utterance.volume = 1.0
-      
-      // 중국어 음성이 있으면 명시적으로 지정
-      if (chineseVoices.length > 0) {
-        utterance.voice = chineseVoices[0]
-        console.log('Using voice:', chineseVoices[0].name)
-      } else {
-        console.log('No Chinese voice, using default with zh-CN lang')
-      }
-      
-      utterance.onstart = () => {
-        console.log('Speech started')
-      }
-      
-      utterance.onend = () => {
-        console.log('Speech ended successfully')
-        speechSynthesis.cancel()
-      }
-      
-      utterance.onerror = (event) => {
-        console.error('Speech error event:', event)
-        console.error('Error type:', event.error)
+    // 7. 에러 처리 - cancel 제거!
+    utterance.onerror = (event) => {
+      if (event.error !== 'canceled') { // canceled는 무시
+        console.error('Speech error:', event.error)
         alert(`발음 재생 실패: ${event.error}`)
       }
-      
-      console.log('Calling speechSynthesis.speak()')
-      speechSynthesis.speak(utterance)
-    }, 100)
+    }
+    
+    // 8. 완료 후 정리는 하지 않음 (cancel 호출 제거)
+    utterance.onend = () => {
+      console.log('Speech completed')
+    }
+    
+    // 9. 즉시 재생 (setTimeout 제거)
+    speechSynthesis.speak(utterance)
   }
 
   // 다음 단어
