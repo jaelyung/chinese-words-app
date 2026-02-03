@@ -1,13 +1,30 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getWords, ChineseWord } from '@/lib/supabase'
+import { getWordsWithCache, ChineseWord } from '@/lib/supabase'
 
 export default function Home() {
   const [words, setWords] = useState<ChineseWord[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showMeaning, setShowMeaning] = useState(false)
+  const [isOnline, setIsOnline] = useState(true) // 추가!
+
+  // 온라인/오프라인 상태 감지
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+
+    setIsOnline(navigator.onLine)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Speech Synthesis 초기화 (모바일용)
   useEffect(() => {
@@ -23,9 +40,9 @@ export default function Home() {
   // 단어 불러오기
   useEffect(() => {
     async function loadWords() {
-      const data = await getWords()
+      const data = await getWordsWithCache() // 변경!
       setWords(data)
-      setLoading(false)  // ← false로 변경!
+      setLoading(false)
     }
     loadWords()
   }, [])
@@ -115,9 +132,16 @@ export default function Home() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             중국어 단어 학습
           </h1>
-          <p className="text-gray-600">
-            {currentIndex + 1} / {words.length} 단어
-          </p>
+          <div className="flex items-center justify-center gap-3">
+            <p className="text-gray-600">
+              {currentIndex + 1} / {words.length} 단어
+            </p>
+            {!isOnline && (
+              <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                📡 오프라인 모드
+              </span>
+            )}
+          </div>
         </div>
 
         {/* 단어 카드 */}

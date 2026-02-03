@@ -30,3 +30,45 @@ export async function getWords() {
   
   return data as ChineseWord[]
 }
+
+// 로컬 스토리지에 단어 캐싱
+export async function getWordsWithCache() {
+  try {
+    // 온라인이면 Supabase에서 가져오기
+    if (typeof window !== 'undefined' && navigator.onLine) {
+      const { data, error } = await supabase
+        .from('chinese_words')
+        .select('*')
+        .order('hsk_level', { ascending: true })
+      
+      if (!error && data) {
+        // 로컬 스토리지에 저장
+        localStorage.setItem('cached_words', JSON.stringify(data))
+        localStorage.setItem('cached_words_time', new Date().toISOString())
+        return data as ChineseWord[]
+      }
+    }
+    
+    // 오프라인이거나 에러 발생 시 캐시에서 가져오기
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_words')
+      if (cached) {
+        return JSON.parse(cached) as ChineseWord[]
+      }
+    }
+    
+    return []
+  } catch (error) {
+    console.error('Error fetching words:', error)
+    
+    // 에러 발생 시 캐시에서 가져오기
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('cached_words')
+      if (cached) {
+        return JSON.parse(cached) as ChineseWord[]
+      }
+    }
+    
+    return []
+  }
+}
